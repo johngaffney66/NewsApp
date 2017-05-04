@@ -43,5 +43,4 @@ public class NewsAdapter extends ArrayAdapter<News> {
         return convertView;
     }
 
-
 }

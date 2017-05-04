@@ -21,7 +21,7 @@ import java.util.List;
 
 
 
-public class MainActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<List<News>> {
+public class MainActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<List<News>>, SwipeRefreshLayout.OnRefreshListener {
 
     private static String GUARDIAN_REQUEST_URL =
             "http://content.guardianapis.com/search?q=Trump&api-key=test";
@@ -31,35 +31,14 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
     private TextView mEmptyState;
     SwipeRefreshLayout mSwipeRefreshLayout;
 
-    @Override
-    public Loader<List<News>> onCreateLoader(int i, Bundle bundle) {
-
-        Log.v(LOG_TAG,"Created Loader");
-        return new NewsLoader(this, GUARDIAN_REQUEST_URL);
-    }
-
-    @Override
-    public void onLoadFinished(Loader<List<News>> loader, List<News> news) {
-
-        if (news != null && !news.isEmpty()) {
-            mAdapter.addAll(news);
-        }
-        mEmptyState.setText(R.string.no_news);
-
-
-    }
-
-    @Override
-    public void onLoaderReset(Loader<List<News>> loader){
-        Log.v(LOG_TAG, "On Load Reset");
-        mAdapter.clear();
-    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        mSwipeRefreshLayout = (SwipeRefreshLayout) findViewById(R.id.swiperefresh);
+        mSwipeRefreshLayout.setOnRefreshListener(this);
         ListView newsList = (ListView) findViewById(R.id.list);
 
         mEmptyState = (TextView) findViewById(R.id.empty_view);
@@ -69,6 +48,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
 
         newsList.setAdapter(mAdapter);
 
+
         newsList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
@@ -76,6 +56,7 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                 Uri newsUri = Uri.parse(currentNews.getUrl());
                 Intent websiteIntent = new Intent(Intent.ACTION_VIEW, newsUri);
                 startActivity(websiteIntent);
+
             }
 
         });
@@ -99,5 +80,33 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
             // Update empty state with no connection error message
             mEmptyState.setText(R.string.no_connection);
         }
+    }
+    @Override
+    public Loader<List<News>> onCreateLoader(int i, Bundle bundle) {
+        Log.v(LOG_TAG,"Created Loader");
+        return new NewsLoader(this, GUARDIAN_REQUEST_URL);
+    }
+
+    @Override
+    public void onLoadFinished(Loader<List<News>> loader, List<News> news) {
+
+        mSwipeRefreshLayout.setRefreshing(false);
+
+        if (news != null && !news.isEmpty()) {
+            mAdapter.clear();
+            mAdapter.addAll(news);
+        }
+        mEmptyState.setText(R.string.no_news);
+    }
+
+    @Override
+    public void onLoaderReset(Loader<List<News>> loader){
+        Log.v(LOG_TAG, "On Load Reset");
+        mAdapter.clear();
+    }
+
+    public void onRefresh(){
+        LoaderManager loaderManager = getLoaderManager();
+        loaderManager.initLoader(NEWS_LOADER_ID, null, this);
     }
 }
